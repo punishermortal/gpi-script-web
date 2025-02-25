@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Files</title>
+</head>
+<body>
+    <h1>Download All Files</h1>
+    <button id="downloadAllBtn">Download All Files</button>
+
+    <script>
+        document.getElementById('downloadAllBtn').addEventListener('click', function() {
+            fetch('http://127.0.0.1:8000/list-files/')  // Fetch the list of files from the server
+                .then(response => response.json())
+                .then(data => {
+                    if (data.files && data.files.length > 0) {
+                        data.files.forEach(fileName => {
+                            const link = document.createElement('a');
+                            link.href = `http://127.0.0.1:8000/download/${encodeURIComponent(fileName)}/`;  // Use download URL
+                            link.download = fileName;  // Set file name for download
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        });
+                    } else {
+                        alert('No files found to download.');
+                    }
+                })
+                .catch(error => console.error('Error fetching file list:', error));
+        });
+    </script>
+</body>
+</html>

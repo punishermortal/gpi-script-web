@@ -1,0 +1,446 @@
+{% comment %} <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-File Upload with Download Option</title>
+    <style>
+        /* Basic Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #4f9cff, #56d2ff);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        .upload-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .file-input-wrapper {
+            margin-bottom: 20px;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            display: block;
+            padding: 10px;
+            background-color: #56d2ff;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-label:hover {
+            background-color: #4f9cff;
+        }
+
+        .file-input-wrapper input:focus + .file-label {
+            outline: 2px solid #4f9cff;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        button {
+            background-color: #4f9cff;
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #358aff;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .success-message {
+            font-size: 16px;
+            color: #28a745;
+            margin-top: 10px;
+        }
+
+        .error-message {
+            font-size: 16px;
+            color: #dc3545;
+            margin-top: 10px;
+        }
+
+        .download-section {
+            margin-top: 20px;
+            display: none; /* Initially hidden */
+        }
+
+        .download-section a {
+            color: white;
+            text-decoration: none;
+            background-color: #4caf50;
+            padding: 12px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            transition: background-color 0.3s ease;
+        }
+
+        .download-section a:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <h1>Upload 4 CSV Files</h1>
+        <form id="uploadForm">
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput1" accept=".csv">
+                <label class="file-label" for="fileInput1">Select File 1</label>
+                <span class="file-name" id="fileName1"></span>
+            </div>
+
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput2" accept=".csv">
+                <label class="file-label" for="fileInput2">Select File 2</label>
+                <span class="file-name" id="fileName2"></span>
+            </div>
+
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput3" accept=".csv">
+                <label class="file-label" for="fileInput3">Select File 3</label>
+                <span class="file-name" id="fileName3"></span>
+            </div>
+
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput4" accept=".csv">
+                <label class="file-label" for="fileInput4">Select File 4</label>
+                <span class="file-name" id="fileName4"></span>
+            </div>
+
+            <button type="submit">Upload Files</button>
+        </form>
+
+        <div class="success-message" id="successMessage" style="display: none;">Files uploaded successfully!</div>
+        <div class="error-message" id="errorMessage" style="display: none;">Error uploading files.</div>
+
+        <!-- Download Section (Initially Hidden) -->
+        <div class="download-section" id="downloadSection">
+            <p>Your files have been uploaded. Click below to download the required file:</p>
+            <a href="#" id="downloadLink" download>Download File</a>
+        </div>
+    </div>
+
+    <script>
+        const fileInputs = [
+            document.getElementById('fileInput1'),
+            document.getElementById('fileInput2'),
+            document.getElementById('fileInput3'),
+            document.getElementById('fileInput4')
+        ];
+
+        // Display file names when a file is selected
+        fileInputs.forEach((input, index) => {
+            input.addEventListener('change', function() {
+                const fileNameSpan = document.getElementById(`fileName${index + 1}`);
+                if (input.files.length > 0) {
+                    fileNameSpan.textContent = input.files[0].name;
+                } else {
+                    fileNameSpan.textContent = '';
+                }
+            });
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData();
+            let hasFile = false;
+
+            fileInputs.forEach(function(input, index) {
+                const file = input.files[0];
+                if (file) {
+                    formData.append('file' + (index + 1), file); // Append each file with a unique key
+                    hasFile = true;
+                }
+            });
+
+            if (!hasFile) {
+                alert('Please select at least one file.');
+                return;
+            }
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'http://127.0.0.1:8000/upload/', true);  // Make sure the URL is correct
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    document.getElementById('successMessage').style.display = 'block';
+                    document.getElementById('errorMessage').style.display = 'none';
+
+                    // Show the download section and update the download link
+                    const downloadSection = document.getElementById('downloadSection');
+                    const downloadLink = document.getElementById('downloadLink');
+                    downloadLink.href = 'http://127.0.0.1:8000/downloadqq/'; // Set the download URL dynamically
+                    downloadSection.style.display = 'block'; // Show the download section
+                } else {
+                    document.getElementById('successMessage').style.display = 'none';
+                    document.getElementById('errorMessage').style.display = 'block';
+                }
+            };
+            xhr.send(formData);
+        });
+    </script>
+</body>
+</html> {% endcomment %}
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-File Upload with Download Option</title>
+    <style>
+        /* Basic Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #4f9cff, #56d2ff);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        .upload-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .file-input-wrapper {
+            margin-bottom: 20px;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            display: block;
+            padding: 10px;
+            background-color: #56d2ff;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-label:hover {
+            background-color: #4f9cff;
+        }
+
+        .file-input-wrapper input:focus + .file-label {
+            outline: 2px solid #4f9cff;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        button {
+            background-color: #4f9cff;
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #358aff;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .success-message {
+            font-size: 16px;
+            color: #28a745;
+            margin-top: 10px;
+        }
+
+        .error-message {
+            font-size: 16px;
+            color: #dc3545;
+            margin-top: 10px;
+        }
+
+        .download-section {
+            margin-top: 20px;
+            display: none; /* Initially hidden */
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <h1>Upload 4 CSV Files</h1>
+        <form id="uploadForm">
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput1" accept=".csv">
+                <label class="file-label" for="fileInput1">Select File 1</label>
+                <span class="file-name" id="fileName1"></span>
+            </div>
+
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput2" accept=".csv">
+                <label class="file-label" for="fileInput2">Select File 2</label>
+                <span class="file-name" id="fileName2"></span>
+            </div>
+
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput3" accept=".csv">
+                <label class="file-label" for="fileInput3">Select File 3</label>
+                <span class="file-name" id="fileName3"></span>
+            </div>
+
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput4" accept=".csv">
+                <label class="file-label" for="fileInput4">Select File 4</label>
+                <span class="file-name" id="fileName4"></span>
+            </div>
+
+            <button type="submit">Upload Files</button>
+        </form>
+
+        <div class="success-message" id="successMessage" style="display: none;">Files uploaded successfully!</div>
+        <div class="error-message" id="errorMessage" style="display: none;">Error uploading files.</div>
+
+        <!-- Download Section (Initially Hidden) -->
+        <div class="download-section" id="downloadSection">
+            <p>Your files have been uploaded. Click below to download the required file:</p>
+            <button id="downloadButton">Download File</button>
+        </div>
+    </div>
+
+    <script>
+        const fileInputs = [
+            document.getElementById('fileInput1'),
+            document.getElementById('fileInput2'),
+            document.getElementById('fileInput3'),
+            document.getElementById('fileInput4')
+        ];
+
+        // Display file names when a file is selected
+        fileInputs.forEach((input, index) => {
+            input.addEventListener('change', function() {
+                const fileNameSpan = document.getElementById(`fileName${index + 1}`);
+                if (input.files.length > 0) {
+                    fileNameSpan.textContent = input.files[0].name;
+                } else {
+                    fileNameSpan.textContent = '';
+                }
+            });
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData();
+            let hasFile = false;
+
+            fileInputs.forEach(function(input, index) {
+                const file = input.files[0];
+                if (file) {
+                    formData.append('file' + (index + 1), file); // Append each file with a unique key
+                    hasFile = true;
+                }
+            });
+
+            if (!hasFile) {
+                alert('Please select at least one file.');
+                return;
+            }
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'http://127.0.0.1:8000/upload/', true);  // Make sure the URL is correct
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    document.getElementById('successMessage').style.display = 'block';
+                    document.getElementById('errorMessage').style.display = 'none';
+
+                    // Show the download section
+                    const downloadSection = document.getElementById('downloadSection');
+                    downloadSection.style.display = 'block'; // Show the download section
+                } else {
+                    document.getElementById('successMessage').style.display = 'none';
+                    document.getElementById('errorMessage').style.display = 'block';
+                }
+            };
+            xhr.send(formData);
+        });
+
+        // Handle download button click
+        document.getElementById('downloadButton').addEventListener('click', function() {
+            window.location.href = 'http://127.0.0.1:8000/download/'; // Trigger file download
+        });
+    </script>
+</body>
+</html>
